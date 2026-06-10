@@ -24,12 +24,21 @@ if __name__ == "__main__":
         in_path = os.path.join(BASE, in_path)
     os.makedirs(OUT_DIR, exist_ok=True)
 
+    import speechbrain  # noqa: F401
+    from speechbrain.utils.importutils import LazyModule
+    # Python 3.12 inspect.getmodule 会触发未安装依赖(k2/flair/spacy)的懒加载并崩溃
+    for _name, _mod in list(sys.modules.items()):
+        if isinstance(_mod, LazyModule):
+            sys.modules.pop(_name, None)
+
     from speechbrain.inference.separation import SepformerSeparation as separator
+    from speechbrain.utils.fetching import LocalStrategy
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = separator.from_hparams(
         source="speechbrain/sepformer-wsj02mix",
         savedir=os.path.join(BASE, "tools", "sepformer-wsj02mix"),
         run_opts={"device": device},
+        local_strategy=LocalStrategy.COPY,  # Windows 无特权创建 symlink
     )
 
     y, _ = librosa.load(in_path, sr=SEP_SR)
@@ -38,7 +47,8 @@ if __name__ == "__main__":
     sf.write(tmp_8k, y, SEP_SR)
 
     t0 = time.perf_counter()
-    est = model.separate_file(path=tmp_8k)
+    # speechbrain 会在路径前拼 cwd, 绝对路径会出错, 必须传相对路径
+    est = model.separate_file(path=os.path.relpath(tmp_8k))
     proc_s = time.perf_counter() - t0
     os.remove(tmp_8k)
 
