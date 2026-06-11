@@ -4,3 +4,6 @@ data/noisy/
 data/separated/
 tools/
 *.tmp
+data/separated_mossformer/
+data/separated_mossformer_ms/
+data/separated_ref/
