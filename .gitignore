@@ -8,3 +8,4 @@ data/separated_mossformer/
 data/separated_mossformer_ms/
 data/separated_ref/
 checkpoints/
+data/denoised/
