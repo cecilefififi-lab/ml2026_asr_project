@@ -12,3 +12,6 @@ data/denoised/
 data/overlap_synth/
 data/overlap_noisy/
 data/exp2/
+.env
+.env.*
+PLAN.md
