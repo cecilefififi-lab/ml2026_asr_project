@@ -1,0 +1,23 @@
+﻿tag,engine,file,text,audio_s,proc_s,rtf
+exp4_vadoff,whisper,noise/babble_0s_3s.wav,,3.00,1.13,0.376
+exp4_vadoff,whisper,noise/babble_15s_10s.wav,请不吝点赞 订阅 转发 打赏支持明镜与点点栏目,10.00,8.81,0.881
+exp4_vadoff,whisper,noise/babble_28s_30s.wav,字幕志愿者 杨茜茜,30.00,0.66,0.022
+exp4_vadoff,whisper,noise/white_0s_3s.wav,響鐘,3.00,0.50,0.167
+exp4_vadoff,whisper,noise/white_20s_10s.wav,由 Amara.org 社群提供的字幕,10.00,0.67,0.067
+exp4_vadoff,whisper,noise/white_30s_30s.wav,響鐘,30.00,0.49,0.016
+exp4_vadoff,whisper,silence/floor_45dBFS_10s.wav,由 Amara.org 社群提供的字幕,10.00,0.71,0.071
+exp4_vadoff,whisper,silence/floor_50dBFS_30s.wav,響鐘,30.00,0.50,0.017
+exp4_vadoff,whisper,silence/floor_60dBFS_10s.wav,字幕志愿者 杨茜茜,10.00,0.62,0.062
+exp4_vadoff,whisper,silence/zero_10s.wav,由 Amara.org 社群提供的字幕,10.00,0.75,0.075
+exp4_vadoff,whisper,silence/zero_30s.wav,由 Amara.org 社群提供的字幕,30.00,0.72,0.024
+exp4_vadon,whisper,noise/babble_0s_3s.wav,,3.00,1.37,0.456
+exp4_vadon,whisper,noise/babble_15s_10s.wav,感谢观看,10.00,0.52,0.052
+exp4_vadon,whisper,noise/babble_28s_30s.wav,字幕志愿者 杨茜茜,30.00,0.73,0.024
+exp4_vadon,whisper,noise/white_0s_3s.wav,,3.00,0.07,0.023
+exp4_vadon,whisper,noise/white_20s_10s.wav,,10.00,0.10,0.010
+exp4_vadon,whisper,noise/white_30s_30s.wav,,30.00,0.13,0.004
+exp4_vadon,whisper,silence/floor_45dBFS_10s.wav,,10.00,0.08,0.008
+exp4_vadon,whisper,silence/floor_50dBFS_30s.wav,,30.00,0.12,0.004
+exp4_vadon,whisper,silence/floor_60dBFS_10s.wav,,10.00,0.09,0.009
+exp4_vadon,whisper,silence/zero_10s.wav,,10.00,0.09,0.009
+exp4_vadon,whisper,silence/zero_30s.wav,,30.00,0.13,0.004
