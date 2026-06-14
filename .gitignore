@@ -4,3 +4,14 @@ data/noisy/
 data/separated/
 tools/
 *.tmp
+data/separated_mossformer/
+data/separated_mossformer_ms/
+data/separated_ref/
+checkpoints/
+data/denoised/
+data/overlap_synth/
+data/overlap_noisy/
+data/exp2/
+.env
+.env.*
+PLAN.md

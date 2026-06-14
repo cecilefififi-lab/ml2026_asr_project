@@ -59,25 +59,33 @@ ENGINES = {"whisper": run_whisper, "funasr": run_funasr}
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--engine", required=True, choices=ENGINES)
-    ap.add_argument("--input", required=True, help="wav 目录或单个 wav")
-    ap.add_argument("--tag", required=True, help="实验条件标签, 如 clean / white_5dB")
+    ap.add_argument("--input", required=True, help="wav 目录(递归)或单个 wav")
+    ap.add_argument("--tag", required=True, help="实验条件标签, 如 clean / L1")
     ap.add_argument("--model-size", default="large-v3", help="whisper 模型规格")
+    ap.add_argument("--out-csv", default=OUT_CSV, help="结果 csv 路径")
     args = ap.parse_args()
 
     path = os.path.join(BASE, args.input) if not os.path.isabs(args.input) else args.input
-    files = sorted(glob.glob(os.path.join(path, "*.wav"))) if os.path.isdir(path) else [path]
+    if os.path.isdir(path):
+        files = sorted(glob.glob(os.path.join(path, "**", "*.wav"), recursive=True))
+        base = path
+    else:
+        files = [path]
+        base = os.path.dirname(path)
     assert files, f"no wav found in {path}"
 
-    os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
-    write_header = not os.path.exists(OUT_CSV)
-    with open(OUT_CSV, "a", newline="", encoding="utf-8-sig") as fp:
+    out_csv = args.out_csv if os.path.isabs(args.out_csv) else os.path.join(BASE, args.out_csv)
+    os.makedirs(os.path.dirname(out_csv), exist_ok=True)
+    write_header = not os.path.exists(out_csv)
+    with open(out_csv, "a", newline="", encoding="utf-8-sig") as fp:
         w = csv.writer(fp)
         if write_header:
             w.writerow(["tag", "engine", "file", "text", "audio_s", "proc_s", "rtf"])
         for f, text, proc_s in ENGINES[args.engine](files, args.model_size):
             dur = audio_duration(f)
-            w.writerow([args.tag, args.engine, os.path.basename(f), text,
+            rel = os.path.relpath(f, base).replace("\\", "/")
+            w.writerow([args.tag, args.engine, rel, text,
                         f"{dur:.2f}", f"{proc_s:.2f}", f"{proc_s / dur:.3f}"])
             fp.flush()
-            print(f"  {os.path.basename(f)} ({dur:.1f}s, rtf={proc_s / dur:.2f}): {text[:50]}")
-    print(f"appended {len(files)} rows -> {OUT_CSV}")
+            print(f"  {rel} ({dur:.1f}s, rtf={proc_s / dur:.2f}): {text[:50]}")
+    print(f"appended {len(files)} rows -> {out_csv}")

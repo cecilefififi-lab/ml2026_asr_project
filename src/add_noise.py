@@ -49,6 +49,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--noise", nargs="*", help="噪声名(默认全部)")
     ap.add_argument("--snr", nargs="*", type=int, default=SNRS)
+    ap.add_argument("--in-dir", default=CLEAN_DIR, help="输入音频目录(递归)")
+    ap.add_argument("--out-dir", default=NOISY_DIR, help="输出根目录")
     args = ap.parse_args()
 
     rng = np.random.default_rng(SEED)
@@ -57,22 +59,23 @@ if __name__ == "__main__":
     if args.noise:
         noise_files = [f for f in noise_files
                        if os.path.splitext(os.path.basename(f))[0] in args.noise]
-    clean_files = sorted(glob.glob(os.path.join(CLEAN_DIR, "*.wav")))
+    clean_files = sorted(glob.glob(os.path.join(args.in_dir, "**", "*.wav"),
+                                   recursive=True))
 
     for nf in noise_files:
         noise_name = os.path.splitext(os.path.basename(nf))[0]
         noise, sr = sf.read(nf)
         assert sr == SR
         for snr in args.snr:
-            out_dir = os.path.join(NOISY_DIR, f"{noise_name}_{snr}dB")
-            os.makedirs(out_dir, exist_ok=True)
+            out_dir = os.path.join(args.out_dir, f"{noise_name}_{snr}dB")
             errs = []
             for cf in clean_files:
                 clean, sr = sf.read(cf)
                 assert sr == SR
                 mixed, actual = mix_at_snr(clean, noise, snr, rng)
-                sf.write(os.path.join(out_dir, os.path.basename(cf)),
-                         mixed.astype(np.float32), SR)
+                dst = os.path.join(out_dir, os.path.relpath(cf, args.in_dir))
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                sf.write(dst, mixed.astype(np.float32), SR)
                 errs.append(abs(actual - snr))
             print(f"{noise_name} @ {snr}dB: {len(clean_files)} files, "
                   f"max SNR error {max(errs):.3f} dB")
