@@ -1,0 +1,37 @@
+[
+  {
+    "id": "case1_term_easy",
+    "source": "con_005 babble_5dB whisper",
+    "asr_raw": "我觉得晚睡晚起是好意",
+    "ref": "哦觉得晚睡晚起是熬夜",
+    "note": "术语错: 熬夜->好意, 上下文完整, 热词表应能帮"
+  },
+  {
+    "id": "case2_term_hard",
+    "source": "pro_005 clean whisper",
+    "asr_raw": "好 我先聊玩具",
+    "ref": "好 我先聊晚睡晚起",
+    "note": "术语错: 晚睡晚起->玩具, 声学差远, 靠热词+辩论上下文推断"
+  },
+  {
+    "id": "case3_homophone",
+    "source": "pro_015 white_0dB funasr+frcrn",
+    "asr_raw": "我说了两个小时",
+    "ref": "我多了两个小时",
+    "note": "近音错: 多->说, 两句都通顺, 无上下文难修(声学区分信息已丢)"
+  },
+  {
+    "id": "case4_hallucination",
+    "source": "con_009 white_0dB whisper",
+    "asr_raw": "小明星大跟班下次再見",
+    "ref": "早睡晚睡",
+    "note": "幻觉: 综艺节目名, 信息全丢, 测LLM是否脑补 vs 承认无法纠正"
+  },
+  {
+    "id": "case5_subtitle_halluc",
+    "source": "pro_002 white_0dB whisper+specsub",
+    "asr_raw": "請不吝点赞 订阅 转发 打赏支持明镜与点点栏目",
+    "ref": "没问题没问题先不着急",
+    "note": "字幕幻觉, 测LLM能否识别为与辩论无关的训练数据残留"
+  }
+]
