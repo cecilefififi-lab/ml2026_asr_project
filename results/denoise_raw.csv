@@ -858,3 +858,15 @@ specsub,exp2_L5,white_5dB/no/con_010_pro_010_spk1.wav,5.42,0.05,0.009
 specsub,exp2_L5,white_5dB/no/con_010_pro_010_spk2.wav,5.42,0.05,0.009
 specsub,exp2_L5,white_5dB/no/con_011_pro_011_spk1.wav,6.61,0.06,0.009
 specsub,exp2_L5,white_5dB/no/con_011_pro_011_spk2.wav,6.61,0.08,0.012
+specsub,real,canteen_01.wav,30.06,0.27,0.009
+specsub,real,classroom_01.wav,30.31,0.28,0.009
+specsub,real,discussion_canteen_01.wav,30.06,0.34,0.011
+specsub,real,discussion_canteen_heavy_01.wav,16.40,0.19,0.011
+specsub,real,discussion_quiet_01.wav,35.26,0.40,0.011
+specsub,real,dorm_clean_01.wav,29.29,0.32,0.011
+frcrn,real,canteen_01.wav,30.06,2.73,0.091
+frcrn,real,classroom_01.wav,30.31,2.06,0.068
+frcrn,real,discussion_canteen_01.wav,30.06,2.06,0.069
+frcrn,real,discussion_canteen_heavy_01.wav,16.40,0.99,0.060
+frcrn,real,discussion_quiet_01.wav,35.26,2.47,0.070
+frcrn,real,dorm_clean_01.wav,29.29,1.99,0.068

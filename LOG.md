@@ -482,3 +482,56 @@ stationary=True),即谱减法变体。
 ### 阶段二收尾状态
 
 实验 1–4 + 消融总表完成。每个实验的假设/设置/结果/失败案例/反直觉发现均已在上方各实验段落记录(PLAN 消融要求项)。下一步进入阶段三(真实录音泛化抽查 + Streamlit demo)。
+
+## 2026-06-16(阶段三 · 真实录音泛化抽查)
+
+把阶段一/二的结论拿到**手机实录的真实音频**上做泛化抽查:换一套独立采集的数据,直接 ASR 是否仍是强 baseline?降噪/分离/VAD 在真实噪声上是否还是负收益为主?
+
+### 假设
+
+阶段二的主结论(直接 ASR 强、降噪/分离多负收益、只有 heavy 重叠分离回本、VAD 对人声型噪声盲区、幻觉跨数据稳定)是合成/受控数据上得到的;真实录音应当能独立复现,否则结论不可泛化。
+
+### 设置
+
+- 6 条真实录音(5 必录 + 1 可选 heavy,`luyin/*.m4a`)。**本机无 ffmpeg**,改用 venv 自带 PyAV(av 17.1,内置 ffmpeg 库)写 `src/convert_audio.py` 解码重采样为 16k mono wav(`data/real/raw/`),解开实验四曾因此跳过真实噪声的阻塞。
+- 分两类:单人条(dorm_clean 干净 / canteen 食堂强噪 / classroom 教室轻噪)、双人重叠条(discussion_quiet 安静 / discussion_canteen 噪声+自然插话 / discussion_canteen_heavy 噪声+刻意同步重叠)。
+- baseline = 直接 ASR(whisper VAD off / VAD on / funasr);链路按类型自动选:单人降噪→ASR(specsub + frcrn),重叠分离→ASR(L3)/ 降噪→分离→ASR(L4)。编排 `src/run_real.py`,结果 `results/real_asr.csv`。
+- **不算 CER**:文稿允许意译(录音要求即"意思和热词说到即可")、重叠条无逐字 GT。改人工 spot-check,并排表 `results/real_spotcheck.md`(`src/report_real.py` 生成)。dorm_clean 与 canteen **同稿**,留作真实"clean vs 强噪"直接对照。
+- 中间产物(降噪/分离 wav)落盘 `data/real/{denoised,sep_L3,sep_L4}/` 作视频前后试听素材。
+
+### 结果与发现(真实数据逐条复现阶段二)
+
+1. **直接 ASR 是真实数据上的强 baseline**:clean、轻噪、自然插话条几乎全文转出;heavy 强噪仍保留主干句。复现"L1 几乎总最优"。
+2. **降噪对 Whisper 真实噪声基本无益,且引入幻觉**:canteen+谱减末尾冒"请不吝点赞订阅订阅";frcrn 把"噪声"转成"造孙"、尾巴更乱。复现域 A"降噪对 Whisper 全害"。
+3. **分离在自然/轻重叠上失败(复制混合)**:discussion_quiet 的 L3 spk2 ≈ 整句混合复制、spk1 是碎片;L4 spk1 陷入循环复读。**只有 heavy 真重叠回本**:discussion_canteen_heavy 直接 ASR 丢掉 A 的同步句("谱减法对平稳噪声…对食堂"),分离后 spk2 把它找回。复现"只有 heavy 重叠分离才勉强回本"。
+4. **L4(降噪→分离)最脆**:discussion_canteen 的 L4 spk2、heavy 的 L4 spk1 都吐"中文字幕志愿者 李宗盛"。复现实验四字幕幻觉,且是处理链放大出来的。
+5. **VAD 双刃**:classroom(轻噪+尾静音)VAD on 消掉尾部"感谢观看"幻觉(有益);canteen(强连续噪声)VAD on 把真实语音中段整块切掉、内容大面积缺失(有害)。复现实验四"VAD 对连续/人声型噪声盲区"。
+6. **热词普遍转错,支撑实验三动机**:英文专名在真实录音上稳定出错(FunASR→方ASR、MossFormer2→MouseFormer / MOSFORMER、DeepFilterNet→DeepFlatNet、谱减法→铺剪法 / 蒲间法、信噪比→心噪笔)。亮点:discussion_canteen 里清晰念出时 Whisper 把 DeepFilterNet 转对了("deep filter net"),说明是声学清晰度问题而非词表缺失。
+
+### 反直觉 / nuance
+
+- **真实"噪声+自然插话"(discussion_canteen)的直接 ASR 反而比"安静重叠"(discussion_quiet)的同步段更完整** —— 前者是自然轮流+少量句尾插话(时间上几乎不重叠),后者含刻意的 5–6s 完全同步段。证明伤害 ASR 的是**同步重叠时长**,不是有没有噪声。
+- 同一句脚本 clean(dorm)vs 强噪(canteen):专名从"Whisper/FunASR 基本对"退化到"FoundDSR / Most Form Pro",噪声主要冲掉专名/低频词的声学细节,而非整体语义。
+
+### 典型案例(视频高光)
+
+- **案例 A(降噪反害)**:canteen + 谱减 → 末尾"请不吝点赞订阅订阅" —— 降噪伪影直接触发字幕幻觉。
+- **案例 B(分离唯一回本)**:discussion_canteen_heavy 直接 ASR 丢 A 的同步句,分离 spk2 找回 → 分离价值的最强论据。
+- **案例 C(L4 幻觉放大)**:discussion_canteen / heavy 降噪→分离 → "中文字幕志愿者 李宗盛"。
+- **案例 D(VAD 双刃)**:classroom VAD 消尾部幻觉(益)vs canteen VAD 切掉真实语音(害),同一开关相反效果。
+
+### 踩坑记录
+
+- 本机无 ffmpeg → m4a 读不了(实验四曾因此跳过真实噪声)。发现 venv 自带 PyAV 内置 ffmpeg 库,`convert_audio.py` 用 `av.AudioResampler` 解码重采样,无需装系统 ffmpeg。
+- 文稿非逐字(允许意译)→ 不算 CER 只做 spot-check;靠 dorm/canteen 同稿保留一处可比的 clean-vs-noise 对照。
+- 沿用 `PYTHONIOENCODING=utf-8` 跑(中文+幻觉文本在 Windows GBK 控制台会崩)。
+
+### 小结
+
+真实录音独立复现阶段二全部主结论,泛化成立。结论一句话:**换一套真实数据,"直接 ASR 最稳、复杂前端多半帮倒忙、只有 heavy 重叠分离回本、VAD 对人声噪声有盲区"依旧成立**。
+
+### Demo 固定素材打包(同日)
+
+无需补录,直接用已有抢话录音打包固定 demo 素材(`src/make_demo.py` → `demo/audio/` 10 条前后音频 + `demo/cases.md` 5 案例,文本从 `results/real_asr.csv` 精确取出):案例 A=heavy 抢话分离唯一回本(直接 ASR 丢 A 同步句、spk2 找回)/ B=自然插话直接 ASR 够用 / C=安静重叠分离复制混合 / D=canteen 降噪反害幻觉 / E=VAD 双刃。目的是录视频时有固定样例,不现场随机翻车。0dB babble 合成重叠样本(human-vs-Whisper 互动段)按需从 `data/overlap_noisy/babble_0dB/heavy/` 取。
+
+阶段三剩余:Streamlit demo 界面 + 视频脚本大纲。

@@ -329,3 +329,9 @@ exp2_L4,white_5dB/no/con_008_pro_008.wav,4.22,0.48,0.114
 exp2_L4,white_5dB/no/con_009_pro_009.wav,4.65,0.52,0.111
 exp2_L4,white_5dB/no/con_010_pro_010.wav,5.42,0.59,0.108
 exp2_L4,white_5dB/no/con_011_pro_011.wav,6.61,0.71,0.107
+real_L3,discussion_canteen_01.wav,30.06,4.51,0.150
+real_L3,discussion_canteen_heavy_01.wav,16.40,1.75,0.107
+real_L3,discussion_quiet_01.wav,35.26,4.03,0.114
+real_L4,discussion_canteen_01.wav,30.06,4.24,0.141
+real_L4,discussion_canteen_heavy_01.wav,16.40,1.75,0.107
+real_L4,discussion_quiet_01.wav,35.26,4.02,0.114

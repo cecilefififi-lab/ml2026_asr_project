@@ -13,6 +13,8 @@ data/overlap_synth/
 data/overlap_noisy/
 data/exp2/
 data/exp4/
+data/real/
+demo/audio/
 .env
 .env.*
 PLAN.md
