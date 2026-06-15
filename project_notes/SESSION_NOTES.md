@@ -28,3 +28,25 @@
 - 总结中说明了实验三的数据、表格、文档和脚本位置；实验三没有新增独立 PNG 图，核心可视化材料是 `results/exp3_correction.md` / `.csv` 的 5 案例对比表。
 - 总结补充了 raw / 纯 LLM / 热词辅助三档 CER 数字、LLM 能拒绝幻觉但不能恢复声学丢失信息的结论、机器学习课程知识点、失败与踩坑，以及可直接放入课程报告的中英文表述。
 - 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
+- jxy提交每日md和session_note
+- hzy提供correct.py和ep3-input-json
+- tjx提供ep3—correction.md/csv
+- 今后提交加入ai协作者如codex和claudecode，直观表现
+
+## 2026-06-15
+
+- 新增 `2026-06-15_01.md`，把阶段二收尾部分整理成人类可读版本，重点覆盖实验四“Whisper 幻觉小实验”和消融总表。
+- 本次总结参考了 `PLAN.md`、`LOG.md`、`project_notes/SESSION_NOTES.md`，并核对了今天主要产出：`data/exp4/`、`results/exp4_hallucination.csv`、`results/exp4_hallucination.md`、`results/exp4_vad_compare.png`、`results/ablation_summary.md`、`results/ablation_pipelines.png`。
+- 总结中说明了实验四的数据、图、表格和文档位置，补充了 VAD off 91% 幻觉率、white/silence 100%→0%、babble 67%→67% 等关键数字。
+- 总结中整理了消融表主结论：直接 ASR 在实验二 15 个条件中 13 个最优；降噪、分离、处理顺序和 LLM 后处理都有明显适用边界。
+- 总结补充了机器学习课程知识点、失败或不顺之处、后续建议，以及可直接放入课程报告和视频答辩的中英文表述。
+- 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
+
+## 2026-06-16
+
+- 新增 `2026-06-16_01.md`，把阶段三“真实录音泛化抽查”和 demo 固定素材整理成人类可读版本。
+- 本次总结参考了 `PLAN.md`、`LOG.md`、`project_notes/SESSION_NOTES.md`，并核对了今天主要产出：`data/real/raw/`、`data/real/denoised/`、`data/real/sep_L3/`、`data/real/sep_L4/`、`results/real_asr.csv`、`results/real_spotcheck.md`、`demo/audio/` 和 `demo/cases.md`。
+- 总结中说明了真实录音的数据、图/可视化材料、表格、文档和 demo 素材位置，并明确本次没有新增独立 PNG 图；同时强调本次因缺少逐字 ground truth 而采用人工 spot-check，不强行计算 CER。
+- 总结整理了真实录音复现出的关键现象：直接 ASR 仍最稳；食堂降噪可能触发“请不吝点赞订阅”等字幕式幻觉；分离只在 heavy 同步重叠中有回本价值；VAD 在轻噪下有益、强人声噪声下可能误切真实语音。
+- 总结补充了机器学习课程知识点、失败或不顺之处、后续建议，以及可直接放入课程报告、视频和答辩的中英文表述。
+- 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
