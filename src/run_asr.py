@@ -28,20 +28,20 @@ def get_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def run_whisper(files, model_size):
+def run_whisper(files, model_size, vad_filter=False):
     from faster_whisper import WhisperModel
     device = get_device()
     compute = "int8_float16" if device == "cuda" else "int8"
     model = WhisperModel(model_size, device=device, compute_type=compute)
-    print(f"faster-whisper {model_size} on {device} ({compute})")
+    print(f"faster-whisper {model_size} on {device} ({compute}), vad_filter={vad_filter}")
     for f in files:
         t0 = time.perf_counter()
-        segments, _ = model.transcribe(f, language="zh", beam_size=5)
+        segments, _ = model.transcribe(f, language="zh", beam_size=5, vad_filter=vad_filter)
         text = "".join(s.text for s in segments)  # 迭代器在此真正执行
         yield f, text, time.perf_counter() - t0
 
 
-def run_funasr(files, _model_size):
+def run_funasr(files, _model_size, _vad_filter=False):
     from funasr import AutoModel
     device = get_device()
     model = AutoModel(model="paraformer-zh", vad_model="fsmn-vad",
@@ -63,6 +63,8 @@ if __name__ == "__main__":
     ap.add_argument("--tag", required=True, help="实验条件标签, 如 clean / L1")
     ap.add_argument("--model-size", default="large-v3", help="whisper 模型规格")
     ap.add_argument("--out-csv", default=OUT_CSV, help="结果 csv 路径")
+    ap.add_argument("--vad-filter", action="store_true",
+                    help="whisper 启用 Silero VAD 过滤(实验4 VAD on/off 对照)")
     args = ap.parse_args()
 
     path = os.path.join(BASE, args.input) if not os.path.isabs(args.input) else args.input
@@ -81,7 +83,7 @@ if __name__ == "__main__":
         w = csv.writer(fp)
         if write_header:
             w.writerow(["tag", "engine", "file", "text", "audio_s", "proc_s", "rtf"])
-        for f, text, proc_s in ENGINES[args.engine](files, args.model_size):
+        for f, text, proc_s in ENGINES[args.engine](files, args.model_size, args.vad_filter):
             dur = audio_duration(f)
             rel = os.path.relpath(f, base).replace("\\", "/")
             w.writerow([args.tag, args.engine, rel, text,

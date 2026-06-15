@@ -382,3 +382,103 @@ stationary=True),即谱减法变体。
 - 用第三方中转(xuedingtoken,key 非官方 `sk-ant-` 格式):官方端点 401,需显式配 `base_url`;且本机已有的 `ANTHROPIC_BASE_URL`(官方)会干扰,脚本改为从 `.env` 显式读 key+base_url 传参。
 - 该中转把 adaptive thinking 的推理用 `<thinking>...</thinking>` 标签塞进**正文 block**(非标准实现)→ 正则 strip 标签才得到干净答案。
 - Opus 4.8 thinking **关闭**时会把推理泄漏进正文(首轮 case1 CER 飙到 67);开 adaptive thinking + strip 标签后稳定。
+
+## 2026-06-15(实验 4:Whisper 幻觉小实验)
+
+### 假设(实验前)
+
+1. 喂无语音内容的音频(纯噪声/静音),Whisper 不会沉默,而是吐训练数据残留型幻觉(字幕/片尾文本)——沿用实验 1/2 已观察到的字幕残留现象。
+2. 开 VAD(`vad_filter`)能压制这类幻觉。
+3. 输入越接近绝对静音越安全:纯零静音应不触发幻觉。
+
+### 数据与设置
+
+- 模型:faster-whisper large-v3(int8_float16, GPU),`language=zh, beam_size=5` —— 与实验 1 完全同设置(复现同款幻觉的关键)。
+- 素材(`make_exp4_clips.py` → `data/exp4/`,11 条,固定 seed=4 可复现):
+  - 纯噪声 6 条:white / babble 各 3 条(3s / 10s / 30s),从 60s 噪声源固定起点截取。
+  - 静音 5 条:纯零 `zero` ×2(10s/30s)+ 近静音底噪 `floor`(-60 / -50 / -45 dBFS)×3。三档电平梯度(满电平噪声 → 微弱底噪 → 纯零)用于探幻觉触发阈值。
+- 对照:同批素材跑 **VAD off** vs **VAD on**(Silero,`run_asr.py` 新增 `--vad-filter` 开关,默认 off 不影响实验 1-3 复现)各一遍。
+- 数据:`results/exp4_hallucination.csv`(tag = `exp4_vadoff` / `exp4_vadon`,共 22 条)。
+
+### 结果
+
+**表 1:无语音输入 → 幻觉(VAD off,11 条命中 10 条 = 91%)**
+
+| 输入 | 类型 | 时长 | Whisper 输出 | 归类 |
+|---|---|---|---|---|
+| babble_0s_3s | babble | 3s | *(空)* | — |
+| babble_15s_10s | babble | 10s | 请不吝点赞 订阅 转发 打赏支持明镜与点点栏目 | 直播打赏字幕 |
+| babble_28s_30s | babble | 30s | 字幕志愿者 杨茜茜 | 字幕组署名 |
+| white_0s_3s | white | 3s | 響鐘 | 短脑补 |
+| white_20s_10s | white | 10s | 由 Amara.org 社群提供的字幕 | 字幕平台残留 |
+| white_30s_30s | white | 30s | 響鐘 | 短脑补 |
+| floor_60dBFS_10s | 近静音底噪 | 10s | 字幕志愿者 杨茜茜 | 字幕组署名 |
+| floor_50dBFS_30s | 近静音底噪 | 30s | 響鐘 | 短脑补 |
+| floor_45dBFS_10s | 近静音底噪 | 10s | 由 Amara.org 社群提供的字幕 | 字幕平台残留 |
+| zero_10s | 纯零静音 | 10s | 由 Amara.org 社群提供的字幕 | 字幕平台残留 |
+| zero_30s | 纯零静音 | 30s | 由 Amara.org 社群提供的字幕 | 字幕平台残留 |
+
+**表 2:VAD on/off 各类型幻觉率(`results/exp4_vad_compare.png`)**
+
+| 输入类型(n) | VAD off | VAD on | 效果 |
+|---|---|---|---|
+| white(3) | 100% | **0%** | ✅ 完全压制 |
+| silence: zero+floor(5) | 100% | **0%** | ✅ 完全压制 |
+| babble(3) | 67% | **67%** | ❌ 几乎无效(漏 "感谢观看" / "字幕志愿者 杨茜茜") |
+
+产出:案例集 `results/exp4_hallucination.md`(1 页,视频高光素材)+ 对比图 `results/exp4_vad_compare.png`。
+
+### 发现
+
+1. **训练数据污染型幻觉**:纯噪声、甚至纯零静音上稳定吐 YouTube/字幕平台残留(`由 Amara.org 社群提供的字幕`、`请不吝点赞订阅打赏`、`字幕志愿者 杨茜茜`)。这是训练集"片尾/无语音段"字幕的条件反射,与有没有声学能量无关。
+2. **VAD 对白噪/静音 100% 有效,对 babble 几乎无效**:white + 全部 silence(8 条)VAD on 后幻觉清零;babble 3 条仍漏 2 条 —— Silero VAD 把可懂人声型噪声判成语音放行。**这解释了实验 1 为何 babble 0dB 最毒:它骗得过 VAD。** 辩论现场观众嘈杂声本质即 babble,VAD 非万能。
+3. **同款幻觉跨实验复现,证明是 Whisper 固定模式而非随机**:
+   - babble 10s 的"请不吝点赞订阅..." = 实验 1 `pro_002` white_0dB+specsub 同款。
+   - babble 30s 的"字幕志愿者 杨茜茜" / VAD on 漏出的"感谢观看" = 实验 2 案例 B 同款。
+   - 呼应 LOG Day1 `pro_005`:真句被替换成"謝謝"。
+4. **机理串联**:噪声/降噪伪影冲掉目标语音的声学信息后,Whisper 的语言模型"接管",从训练记忆调出最熟悉的"无语音段字幕"填空 → 必须在 ASR 前置 VAD/能量闸门拦下"根本没人说话"的段落。
+
+**假设回顾:**
+
+- 假设 1(无语音输入触发幻觉):**强成立**,91% 命中。
+- 假设 2(VAD 压制幻觉):**部分成立** —— 对白噪/静音完全有效,对 babble 失效。这是本实验最大 insight。
+- 假设 3(纯零最安全):**否**,纯零静音照样稳定吐字幕残留。Whisper 不靠能量门控决定是否解码。
+
+### 典型案例
+
+- **案例 A(纯零幻觉)**:`zero_30s`(全 0 采样)→ "由 Amara.org 社群提供的字幕"。绝对静音也无中生有,VAD 必要性的最强论据。
+- **案例 B(VAD 的盲区)**:`babble_15s_10s` VAD off → "请不吝点赞订阅...",VAD on → "感谢观看"。VAD 没拦住,只是换了个幻觉文本 —— 人声型噪声始终骗得过 VAD。
+
+### 踩坑记录
+
+- 本机无 ffmpeg,`luyin/*.m4a` 真实录音第三类噪声 soundfile 读不了 → 实验 4 暂跳过真实录音素材(加餐性质,不阻塞),纯噪声/静音已足够说明问题。
+- 含中文幻觉文本的脚本输出在 Windows GBK 控制台会崩 → 沿用实验 1 经验,`PYTHONIOENCODING=utf-8` 跑。
+- 出图用英文标签:本机 matplotlib 未配中文字体(`plot_denoise` 同),`plot_exp4.py` 全英文标签避开豆腐块。
+
+## 2026-06-15(消融总表整理 · 阶段二收尾)
+
+把实验 1–4 汇成一张消融主表,正面回答项目总问题"哪些预处理真有用、哪些看起来高级却不划算"。
+
+### 产出
+
+- `results/ablation_summary.md`:消融主表(6 行链路 baseline → +降噪 → +分离 → +降噪后分离 → +分离后降噪 → +LLM 纠错)+ 三域口径声明 + 反直觉发现汇总 + 规则版推荐链路。
+- `results/ablation_pipelines.png`:实验 2 五链路 content CER 均值对比图(英文标签,视频用)。
+- `src/plot_ablation.py`:出图脚本。
+
+### 关键聚合(原始 csv 精确计算,非手抄)
+
+- **域 A 降噪**(实验 1,6 噪声条件 CER 均值):whisper none **26.5%** → frcrn 47.9% / specsub 43.0%(全害);funasr none **30.3%** → frcrn 36.1% / specsub 27.3%(specsub 均值上略益)。唯一大幅救场:funasr white_0dB 68.4→**27.5**。
+- **域 B 分离/顺序**(实验 2,15 格 content CER 均值):L1 **39.8%** / L2 52.5% / L3 68.2% / L4 67.4% / L5 65.3%;spk CER L3-5 均 84–88%(短片段没分开)。L1 在 15 格中 **13 格最优**,L3 仅 2 格(均 heavy 重叠)。
+- **域 C 纠错**(实验 3,5 案例 content CER 均值):raw **90.0%** → 纯 LLM 41.0% → 热词 53.0%(降幅来自拒绝 2 条幻觉,非修字词;热词反升)。
+
+### 口径提醒
+
+三域绝对 CER 不可跨行直接比(单人 vs 重叠双人 vs 挑选案例),消融主表跨行只比净效果方向。
+
+### 主结论
+
+2–4s 短辩论片段 + 噪声/重叠约束下,**直接 ASR(L1)几乎总是性价比最高**;复杂前端只在极窄条件回本(FunASR×white×低 SNR 的降噪、heavy 重叠的分离)。复杂度每加一层,多数条件 CER 不降反升 → 正面回答项目总问题。
+
+### 阶段二收尾状态
+
+实验 1–4 + 消融总表完成。每个实验的假设/设置/结果/失败案例/反直觉发现均已在上方各实验段落记录(PLAN 消融要求项)。下一步进入阶段三(真实录音泛化抽查 + Streamlit demo)。
