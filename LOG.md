@@ -535,3 +535,39 @@ stationary=True),即谱减法变体。
 无需补录,直接用已有抢话录音打包固定 demo 素材(`src/make_demo.py` → `demo/audio/` 10 条前后音频 + `demo/cases.md` 5 案例,文本从 `results/real_asr.csv` 精确取出):案例 A=heavy 抢话分离唯一回本(直接 ASR 丢 A 同步句、spk2 找回)/ B=自然插话直接 ASR 够用 / C=安静重叠分离复制混合 / D=canteen 降噪反害幻觉 / E=VAD 双刃。目的是录视频时有固定样例,不现场随机翻车。0dB babble 合成重叠样本(human-vs-Whisper 互动段)按需从 `data/overlap_noisy/babble_0dB/heavy/` 取。
 
 阶段三剩余:Streamlit demo 界面 + 视频脚本大纲。
+
+## 2026-06-16(阶段三收尾 + 阶段四图表:demo 界面 / 视频脚本大纲 / trade-off 简表)
+
+承上,补齐阶段三最后两项,并推进阶段四第 12 天的图表整理。
+
+### Streamlit demo 最小版(`demo/app.py`,混合形态)
+
+- 一页两 tab:**Tab1 固定案例**(读 `make_demo.CASES` + `demo/audio/` + `real_asr.csv`,选案例 A–E → 前后音频试听 + 前后文本对照 + 耗时/RTF + 讲点,**零现场跑、不翻车**);**Tab2 上传现场跑**(上传音频 → 直接 ASR,faster-whisper large-v3,可选 VAD → 文本 + 时长/耗时/RTF + 试听,模型 `@st.cache_resource` 缓存)。
+- 降噪/分离等重链路只在 Tab1 以预跑结果展示,现场不跑(沿用 `make_demo` "避免录视频翻车"的初衷)。
+- 依赖:`streamlit==1.58.0` 入 `requirements.txt`。自测:headless 启动 `/_stcore/health=ok` 无报错;Tab1 数据完备校验(5 案例的音频/csv 行/文本/RTF 齐)通过。
+- 注:`demo/audio/` 在 `.gitignore` 内(音频不入库),clone 后需本地重跑 `make_demo.py` 复原 Tab1 音频;`app.py` 与 `cases.md` 入库。
+
+### 视频脚本大纲(`video_script_outline.md`,中文规划稿)
+
+- 12 段时间轴(约 12 分钟,可裁到 10),辩论赛叙事(噪声=起哄 / 重叠=抢话 / LLM=校对),每段标【画面 + 素材路径】【中文旁白要点】【数据出处】【评分维度 insight/nuances/depth/difficulties/fun】。
+- 实验数字全部回填 LOG 出处;片尾含团队分工 + AI 协作署名。成片英文录制,故本稿为中文规划稿。
+
+### 精度-耗时 trade-off 简表(`src/plot_tradeoff.py` → `results/tradeoff_summary.md` + `tradeoff.png`)
+
+- 链路总 RTF 由各环节**实测** RTF 组装(非手填):ASR 取 `exp2_summary.asr_rtf`、降噪取 `denoise_raw` 的 `exp2_L2/exp2_L5`、分离取 `separate_raw` 的 `exp2_L3/exp2_L4`;双路环节(分离链路 ASR、L5 降噪)按 2 路计;L2/L4 共用"对原混合降噪"、L5 复用 L3 分离。
+
+| 链路 | content CER | 链路 RTF | ×L1 |
+|---|---|---|---|
+| L1 直接 | 39.8% | 0.191 | 1.0 |
+| L2 降噪 | 52.5% | 0.235 | 1.2 |
+| L3 分离 | 68.2% | 0.520 | 2.7 |
+| L4 降噪→分离 | 67.4% | 0.533 | 2.8 |
+| L5 分离→降噪 | 65.3% | 0.645 | 3.4 |
+
+- CER 与 `ablation_summary.md` 完全一致(校验聚合口径正确);RTF 的 L3–L5 = 2.7–3.4× L1,印证本文 2026-06-13"分离链路约 L1 的 2–3 倍耗时"。
+- 结论:**精度-耗时平面上没有任何链路落在 L1 的右下方(更快更准)** —— 量化坐实"复杂前端多花算力却更不划算"的项目总结论。
+
+### 阶段进度
+
+- 阶段三全部完成(真实录音抽查 + Streamlit demo + 视频脚本大纲)。
+- 阶段四第 12 天图表整理完成(退化曲线 / 降噪对比 / 处理顺序 / 失败案例 / trade-off 五项齐 + 结论 `ablation_summary.md`)。下一步(本次未做,按用户要求停在写脚本前):写英文视频脚本逐字稿 → 录制剪辑 → 提交材料打包。
