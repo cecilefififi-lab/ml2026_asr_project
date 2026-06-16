@@ -571,3 +571,17 @@ stationary=True),即谱减法变体。
 
 - 阶段三全部完成(真实录音抽查 + Streamlit demo + 视频脚本大纲)。
 - 阶段四第 12 天图表整理完成(退化曲线 / 降噪对比 / 处理顺序 / 失败案例 / trade-off 五项齐 + 结论 `ablation_summary.md`)。下一步(本次未做,按用户要求停在写脚本前):写英文视频脚本逐字稿 → 录制剪辑 → 提交材料打包。
+
+## 2026-06-16(结论 × 文献佐证对照)
+
+回应老师"实验结论需有现实研究/博客论证"的要求,把 8 条核心结论逐条对照公开论文/社区博客,产出 `results/literature_support.md`(团队共享用)。
+
+### 核验结论
+
+- **6 条强证实**:Whisper 静音/非语音幻觉(arXiv 2501.11378;whisper Discussion #928)、降噪伤 ASR(arXiv 2201.06685《How Bad Are Artifacts?》/ 2512.17562《When De-noising Hurts》40/40 配置全劣化)、over-separation(arXiv 2106.00949《Should We Always Separate?》/ 2503.17886)、LLM 是过滤器非纠错器(arXiv 2409.09785 / 2505.24347)、VAD 边界、模型抗噪画像差异(Whisper 原论文 2212.04356 / Whisper-AT 2307.03183)。
+- **1 条证实但需注意 SNR 依赖**:babble vs white 的相对难度依赖 SNR 区间,保持"0dB 交叉/低 SNR 两模型弱点相反"表述,勿写成单调关系。
+- **2 条需收窄/标为新发现**:(A)"处理顺序不重要"实为分离失效(spk CER 84–88%)的退化情形,应收窄为"分离失效条件下无稳定差异";(B)"FunASR 抗 babble 强于 Whisper"文献无直接对比,作为本项目新发现陈述(符合"抗噪画像随训练数据而异"总规律)。
+
+### 备注
+
+仅做"结论 ↔ 文献"映射,未改任何实验数字。
