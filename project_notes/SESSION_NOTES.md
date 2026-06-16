@@ -50,3 +50,9 @@
 - 总结整理了真实录音复现出的关键现象：直接 ASR 仍最稳；食堂降噪可能触发“请不吝点赞订阅”等字幕式幻觉；分离只在 heavy 同步重叠中有回本价值；VAD 在轻噪下有益、强人声噪声下可能误切真实语音。
 - 总结补充了机器学习课程知识点、失败或不顺之处、后续建议，以及可直接放入课程报告、视频和答辩的中英文表述。
 - 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
+
+- 新增 `2026-06-16_02.md`，把今天后续新增的 Streamlit demo、视频脚本大纲、精度-耗时 trade-off 图表和文献佐证对照整理成人类可读版本。
+- 本次总结参考了 `PLAN.md`、`LOG.md`、`project_notes/SESSION_NOTES.md`，并核对了今天的主要产出：`demo/app.py`、`demo/cases.md`、`demo/audio/`、`results/tradeoff_summary.md`、`results/tradeoff.png`、`results/literature_support.md`、`video_script_outline.md`、`requirements.txt`、`results/ablation_summary.md` 和 `results/real_spotcheck.md`。
+- 总结中说明了本次数据、图、表格和文档分别所在目录，整理了 demo 五个固定案例、L1-L5 的 CER/RTF trade-off、视频 10-12 分钟叙事结构，以及哪些结论有文献支撑、哪些需要收窄表述。
+- 总结补充了机器学习课程知识点、实验失败或不顺之处、后续建议，并给出可直接写入课程报告和视频答辩的中英文表述。
+- 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
