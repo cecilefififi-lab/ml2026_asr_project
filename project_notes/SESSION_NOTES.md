@@ -56,3 +56,10 @@
 - 总结中说明了本次数据、图、表格和文档分别所在目录，整理了 demo 五个固定案例、L1-L5 的 CER/RTF trade-off、视频 10-12 分钟叙事结构，以及哪些结论有文献支撑、哪些需要收窄表述。
 - 总结补充了机器学习课程知识点、实验失败或不顺之处、后续建议，并给出可直接写入课程报告和视频答辩的中英文表述。
 - 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件。
+
+## 2026-06-19
+
+- 新增 `2026-06-19_01.md`，把实验 5b“预处理是否抹掉语音情绪”整理成人类可读版本。
+- 本次总结参考了 `PLAN.md`、`Project.md`、`asr-robustness/LOG.md`、`project_notes/SESSION_NOTES.md`，并核对了今天更新的主要产出：`src/run_emotion.py`、`results/exp5_emotion.md`、`results/exp5_emotion_clips.csv`、`results/exp5_emotion_sep.csv`、`results/exp5_emotion_drift.png`。
+- 总结中说明了数据、图、表格、文档和脚本的位置，整理了 emotion2vec P(angry) 指标、clean 到降噪、噪声加降噪、分离链路三组结果，以及可直接写入课程报告和英文视频的中英文表述。
+- 本次只更新 `project_notes/` 下的 Markdown 总结文件；未修改代码，未删除文件，也未涉及无关文件。

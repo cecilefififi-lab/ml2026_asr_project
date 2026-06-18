@@ -585,3 +585,42 @@ stationary=True),即谱减法变体。
 ### 备注
 
 仅做"结论 ↔ 文献"映射,未改任何实验数字。
+
+## 2026-06-19（加餐实验 5b：预处理 × 语音情感）
+
+回应老师建议探索 “Emotion in Audio/Voice/ASR”。作为加餐长在“高级预处理不一定划算”主线上，问：降噪/分离在改善文字的同时，是否擦掉副语言情绪。零新增依赖，沿用 FunASR + ModelScope `iic/` 栈。
+
+### 模型与先验探针
+
+- SER：`iic/emotion2vec_plus_large`（9 类，16kHz，FunASR `AutoModel`）。
+- 探针：对 26 条 clean 片段跑 SER → **18/26 非中立（平均置信 0.891），其中 angry=17**（辩论本身对抗性语气）。源情绪分明，E5b 用原数据即可，无需 ESD。
+- 指标：**P(angry) 均值**（免 spk 配对），比较处理前后愤怒强度是否被削平。
+
+### 实验假设
+
+降噪/分离会系统性降低 P(angry)；分离（短片段失真严重）比降噪伤得更重。
+
+### 设置（`src/run_emotion.py`）
+
+- A 降噪伪影：`clean` vs `denoised/{frcrn,specsub}/clean`（对干净片段也降噪，无噪声混淆）。
+- A' 真实管线：`clean` → `denoised/{frcrn,specsub}/{noise_snr}`，按 SNR 聚合。
+- B 分离：源 con/pro vs `exp2/{L3_sep,L4_sep}/clean/{no,light,heavy}` 分离两路。
+
+### 实验结果
+
+- **A（17 条 angry 片段 P(angry) 均值）：clean 0.89 → FRCRN 0.85（翻转 1/17）→ SpecSub 0.65（翻转 4/17）。** 便宜谱减伤情绪明显重于神经降噪。
+- **B（同批源说话人）：source 0.63 → L3 no/light/heavy 0.37 / 0.47 / 0.35。** 分离把愤怒腰斩，且与重叠程度无单调关系。
+- 口径：A 基线为 17 条 angry-top 片段；B source 为 22 个源说话人（含中立）。有效对比是各支路内部前后差，A、B 绝对值不直接可比。
+
+### 失败 / 反直觉
+
+- 同一句两种降噪相反结局：`pro_014` angry(0.88)→谱减 neutral(0.02) 但 FRCRN 仍 angry(0.95)；`con_005` angry(0.92)→谱减 **happy(0.001)**（愤怒被误读成开心）。
+- 分离对情绪的破坏 > 降噪，且 no(0.37)≈heavy(0.35) 无单调关系，与既有“分离在 2-4s 短片段普遍失效”自洽。
+
+### 结论（接主线）
+
+“高级预处理不一定划算”新增**副语言层**：即便对文字有时有用，降噪/分离会系统性擦掉“话说得多激动”；**分离 > 降噪、谱减 > 神经降噪**。回应老师 emotion 方向。
+
+### 产物
+
+`results/exp5_emotion.md` / `exp5_emotion_clips.csv` / `exp5_emotion_sep.csv` / `exp5_emotion_drift.png`；脚本 `src/run_emotion.py`。
