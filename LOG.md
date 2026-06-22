@@ -624,3 +624,29 @@ stationary=True),即谱减法变体。
 ### 产物
 
 `results/exp5_emotion.md` / `exp5_emotion_clips.csv` / `exp5_emotion_sep.csv` / `exp5_emotion_drift.png`；脚本 `src/run_emotion.py`。
+
+## 2026-06-23（按老师反馈撰写正式研究报告）
+
+老师群内反馈：提交在 depth / justification / supporting evidence 上不足——选型缺论证、缺文献、缺"前人局限"与"测试什么假设"的显式表述。实验已基本完成，本次补"研究报告"这一层（非新实验），把已有 PLAN/LOG/project_notes/results 的真实迭代与决策提炼成研究推理体（去日期、去流水账）。
+
+### 产物：REPORT.md（中文主稿，术语 English）
+
+九节正文 + 复现 + References：Abstract / Introduction / Related Work / Hypotheses(H1–H5) / **Design Rationale（选型论证，写最详）** / Experimental Setup / Experiments 1–6 / Discussion / Limitations。
+- 正面回应老师点名问题：为何 faster-whisper 而非 WhisperX（短片段不需 alignment/diarization、且要单控 VAD 变量）；为何加 FunASR 做异构对照；DeepFilterNet→FRCRN、SepFormer→MossFormer2 的真实试错。
+- 显式列 H1–H5 假设及"证实/推翻/收窄"；§2.6 单列前人工作（学长 `xutong_paper`）三点局限。
+
+### 新增图表
+
+- `results/exp2_pipelines.png`（脚本 `src/plot_exp2.py`）：五链路按 overlap 程度 content CER 分组柱状，直观呈现 over-separation（no-overlap L1=23.8% vs 分离 ≈64–70%；heavy 时 L1=63.3%≈L3=64.0%）。三档均值复算 = 39.8，与 ablation 表 L1 自洽。
+- REPORT 内嵌 3 张 mermaid：系统架构 / L1–L5 链路 / 文献三态（证实/收窄/新发现）。
+- §6.6 补 audio examples 案例表（A–E，指向 `demo/audio/` + `demo/cases.md`）。
+
+### 文献编号核实
+
+联网核对所用模型原始论文 arXiv 编号并补入 References：Paraformer 2206.08317 / FunASR 2305.11013 / MossFormer2 2312.11825 / FRCRN 2206.07293 / ClearerVoice-Studio 2506.19398 / emotion2vec 2312.15185 / SepFormer 2010.13154 / Conv-TasNet 1809.07454 / DeepFilterNet 2110.05588。
+
+### 待补（不阻塞）
+
+- demo 截图 → `results/demo_screenshot.png`（§10 已留图位 + 启动命令）。
+- 实验 6 长音频 length ablation（占位，验证处理顺序结论的边界条件）。
+- mermaid → PNG（仅导出 PDF / 视频 slides 时需要）。
