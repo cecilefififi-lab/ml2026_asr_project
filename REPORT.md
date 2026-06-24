@@ -73,7 +73,7 @@ arXiv:2409.09785 给出 GER 的 challenge 与 baseline，指出 text-only 改写
 |---|---|---|---|
 | H1 | noise degradation | SNR 15→5→0 dB 时 CER 单调上升；babble（人声背景）比 white 伤害更大 | **部分证实，需收窄**：单调上升成立；white vs babble 的相对难度**依赖 SNR 区间**，仅在低 SNR / 交叉点附近 babble 对 Whisper 更毒（exp1） |
 | H2 | denoising benefit | 降噪在低 SNR 有益，高 SNR 因 artifact 反而有害 | **证实**：仅 `FunASR × white × 低 SNR` 稳定回本；clean/高 SNR 降噪普遍有害（exp1） |
-| H3 | processing order | noise + overlap 并存时，先降噪 vs 先分离对结果有显著影响 | **推翻（限定条件下）**：L4 vs L5 无稳定差异——但根因是 separation 在短片段已基本失效，属 degenerate case（exp2，详见 7.3 收窄说明） |
+| H3 | processing order | noise + overlap 并存时，先降噪 vs 先分离对结果有显著影响 | **先否后立（边界定位，双引擎佐证）**：短片段上 L4/L5 无稳定差异（degenerate case）；exp6 拉长到 ~12 s 后顺序差异显现——**轻重叠先降噪(L4)，Whisper+FunASR 6/6 一致**（exp2 + exp6，详见 6.7 / 7.3） |
 | H4 | LLM correction boundary | LLM 能修术语/格式，但修不了 acoustic 已丢失的错误 | **证实**：LLM 唯一可靠价值是拒绝 hallucination，通顺错词修不了（exp3） |
 | H5 | engineering trade-off | 更复杂的链路不一定值得，存在低成本接近最优的方案 | **证实**：direct ASR 在 15 个重叠条件中 13 个最优（exp2 + ablation） |
 
@@ -265,10 +265,38 @@ flowchart LR
 | D | 单人·食堂强噪 | **降噪反害**：谱减伪影末尾凭空冒出"请不吝点赞订阅" | `caseD_canteen_raw.wav` / `caseD_canteen_specsub.wav` |
 | E | 单人·教室轻噪 vs 食堂强噪 | **VAD 双刃**：轻噪下消掉尾部幻觉（有益）/ 强噪下切掉真实语音中段（有害） | `caseE_classroom_raw.wav` |
 
-### 6.7 实验 6：长音频 length ablation（占位）
+### 6.7 实验 6：长音频 length ablation（域 B 边界，验证 H3 根因）
 
-> ⚠️ **占位 · 建议补做（待后续 GPU 时间）**：把已有 26 条校对片段拼接成 15–30 s 多轮可控重叠长句，对其跑 exp2 同一套 L1–L5，观察 length 从 2–4 s → 15–30 s 时：(a) MossFormer2 separation 是否回本；(b) L4/L5 顺序差异是否出现。
-> **价值**：若顺序差异出现，可把 exp2 的 H3 结论从"degenerate-case 退化观察"**升级为 boundary-condition 定位**（短片段失效的边界）——这是对老师"深度"要求最直接的加分项。产物计划：`results/exp6_length_*.{csv,png}`。
+- **假设**：检验 H3 的根因——exp2「处理顺序无稳定差异」究竟是普遍规律，还是 2–4 s 短片段 separation 全盘失效（spk CER 84–88%）的 degenerate artifact？拉长到 ~12 s 后，(a) separation 是否回本；(b) L4/L5 是否出现差异。
+- **数据出处确认**：经学长 `xutong_paper.pdf` 表 4.12 核实，con/pro 源自一段 62.4 s **双人**辩论质询片段、人工切分出单人片段——con_* 全为反方一人、pro_* 全为正方一人，故拼接同一角色多条 = 连贯真实单说话人，非"假说话人"，双说话人 ground truth 仍严格成立。
+- **设置**：`src/make_exp6.py` 复用 `make_overlap.mix_pair`，每角色固定种子拼 ~12 s，按 {light=0.3, heavy=0.8} 等响度错位混合；clean + babble_0dB + white_0dB；跑 L1/L3/L4/L5（砍 L2，不涉顺序），**Whisper + FunASR 双引擎**（异构对照，验证顺序效应非单模型特性）+ specsub + MossFormer2。5 样本 × 2 档 × 3 噪声 × 4 链路 × 2 引擎 = 420 条转写。脚本 `src/{make_exp6,run_exp6,eval_exp6,plot_exp6}.py`，明细 `results/exp6_{summary.csv,pivot.md}`、`data/exp6/manifest.csv`。
+- **结果**（Whisper content CER%，`short=exp2 短片段 → long=本实验`）：
+
+| cond | level | L1 | L3 | L4 | L5 |
+|---|---|---|---|---|---|
+| clean | light | 11.3 → 17.9 | 57.6 → 82.9 | 61.3 → 73.7 | 48.8 → 86.9 |
+| clean | heavy | 50.0 → 52.1 | 46.9 → 49.1 | 58.9 → 51.3 | 57.4 → **47.7** |
+| babble_0dB | light | 58.3 → 53.6 | 100.6 → 93.7 | 76.5 → **64.0** | 80.5 → 90.6 |
+| babble_0dB | heavy | 90.7 → 86.6 | 70.3 → 89.1 | 86.3 → 92.9 | 77.3 → 89.2 |
+| white_0dB | light | 32.5 → 29.9 | 64.2 → 48.1 | 68.7 → **47.2** | 64.4 → 51.8 |
+| white_0dB | heavy | 60.1 → 59.5 | 63.0 → 65.7 | 71.8 → 75.4 | 66.4 → 63.0 |
+
+**处理顺序 L4 vs L5 双引擎对照（content CER%，胜者=更小）**——light 重叠 6/6 一致偏向 L4（先降噪）：
+
+| cond/level | whisper L4 / L5 | funasr L4 / L5 |
+|---|---|---|
+| clean/light | **73.7** / 86.9 | **87.6** / 91.5 |
+| babble_0dB/light | **64.0** / 90.6 | **51.4** / 99.8 |
+| white_0dB/light | **47.2** / 51.8 | **44.3** / 60.0 |
+| clean/heavy | 51.3 / **47.7** | 56.1 / **54.6** |
+| babble_0dB/heavy | 92.9 / **89.2** | **73.9** / 82.3 |
+| white_0dB/heavy | 75.4 / **63.0** | 67.6 / **55.5** |
+
+per-speaker CER（long, Whisper）：仅 clean/heavy 降到 ~50%，其余多在 75–94%。short vs long 对比图 `results/exp6_length.png`。
+
+- **failure case（顺序效应机理）**：`babble_0dB / light / s2`——**L5（先分离）**把带噪混合直接喂分离器，spk1=spk2="中文字幕志愿者 李宗盛"（两路全坍成字幕 hallucination，彻底失败）；**L4（先降噪）**给分离器干净输入，救回一路真实内容。即降噪前置避免 separator 被噪声诱导出双路幻觉，这是 L4 在轻重叠+噪声下大幅领先的机理。
+- **发现**：① separation 在长音频上**仍大面积失败**（spk 多 75–94%）→「短片段难分」非唯一主因，根本是模型对中文重叠语音的能力问题；② **处理顺序确有差异且跨引擎稳健**——light 重叠 **6/6（双引擎×3 噪声）一致偏向先降噪(L4)**，babble 下最猛（whisper −27 / funasr **−48**），heavy 重叠则 L5 多数微弱占优；FunASR 独立证实顺序效应**非 Whisper 特性**；③ **separation 是否回本取决于引擎的噪声弱点**：Whisper 仅 clean/heavy 勉强回本，FunASR clean/heavy **不**回本却在 **white_0dB 大幅回本**（L1 76.9/88.7 → 分离 44.3/55.5），因 FunASR 本身怕 white（exp1）→ **呼应 exp1「两引擎弱点相反」**。
+- **对 H3 的升级**：从"degenerate-case 退化观察"升级为 **boundary-condition 定位**并经异构引擎佐证——*分离全败的短片段上无差异；给足时长后顺序确有差异，**轻重叠应先降噪(L4)，双引擎 6/6 一致***，**部分复活 exp2 立项时被否的假设**（先降噪让分离器更易工作）。caveat：N=5/格属定性，heavy 部分链路接近地板该处差异不可靠；最硬证据是 light 重叠的 L4>L5（双引擎）与 FunASR×white 回本。
 
 ---
 
@@ -278,7 +306,7 @@ flowchart LR
 
 1. **两 backend 弱点相反**：Whisper 抗 white、怕 babble（诱发 hallucination）；FunASR 相反。两条退化曲线在 0 dB 附近交叉。→ 若只用单模型，会把模型弱点误判为 ASR 普遍弱点。
 2. **"高级预处理"在短片段普遍负收益**：separation/denoising 在 2–4 s 辩论片段上几乎全程帮倒忙，只有 heavy 重叠勉强回本。
-3. **处理顺序在退化情形下不重要**：L4/L5 差异小——但根因是 separation 已失效（见 7.3）。
+3. **处理顺序的差异随片段长度浮现（且跨引擎稳健）**：短片段上 L4/L5 差异小（separation 已失效的退化情形），但 exp6 拉长到 ~12 s 后差异显现——**轻重叠应先降噪(L4)，Whisper+FunASR 6/6 一致**，babble 下最猛（−27 / −48 pt）；另发现 separation 回本与否随引擎噪声弱点而变（FunASR×white 回本，呼应 #1）（见 6.7 / 7.3）。
 4. **降噪改变 Whisper 错误模式**：hallucination → silence（降噪后大量空转写）。
 5. **VAD 有边界**：压得住 white/silence（100%→0%），压不住 babble（67%→67%）。
 6. **LLM 是 filter 不是 corrector**：能拒幻觉，修不了 acoustic 已丢失的通顺错词。
@@ -300,7 +328,7 @@ overlap heavy（抢话）→ 才考虑 separation，且预期收益有限
 
 完整逐条见 `results/literature_support.md`。择要：
 - **强证实**：Whisper 非语音幻觉（2501.11378）、降噪伤 ASR（2201.06685 / 2512.17562）、over-separation（2106.00949 / 2503.17886）、LLM 是 filter（2409.09785 / 2505.24347）。
-- **需收窄**：① "处理顺序不重要"——文献无此普适结论，且本项目 spk CER 84–88% 说明 separation 在 2–4 s 片段**根本没分开**，L4/L5 看不出差异属 degenerate case，**不可外推为"顺序无所谓"**；② "white vs babble 谁更毒"依赖 SNR，**不可写成单调关系**。
+- **需收窄**：① "处理顺序不重要"——文献无此普适结论，且本项目短片段 spk CER 84–88% 说明 separation **根本没分开**，L4/L5 看不出差异属 degenerate case，**不可外推为"顺序无所谓"**；exp6 拉长到 ~12 s 后已定位边界——**轻重叠先降噪(L4)，Whisper+FunASR 6/6 一致**，顺序确有差异（见 6.7）；② "white vs babble 谁更毒"依赖 SNR，**不可写成单调关系**。
 - **新发现（本项目实证）**：FunASR 抗 babble 强于 Whisper（文献无 Whisper vs Paraformer 直接对比）；VAD 对 babble 67%→67% 的具体数字；短片段（2–4 s）导致 separation 失效的现象。
 
 **图 7.3 结论 × 文献三态对照**（证实 / 收窄 / 新发现）：
@@ -314,7 +342,7 @@ flowchart TB
         c4["LLM 是 filter 不是 corrector<br/>arXiv:2409.09785 / 2505.24347"]
     end
     subgraph NARROW["⚠️ 需收窄 narrow the claim"]
-        n1["处理顺序不重要<br/>→ 限短片段 degenerate case"]
+        n1["处理顺序不重要<br/>→ 限短片段退化情形<br/>exp6 长音频上顺序有别"]
         n2["white vs babble 谁更毒<br/>→ 依赖 SNR 区间"]
     end
     subgraph NEW["🔶 本项目新观察 new observation"]
@@ -329,12 +357,12 @@ flowchart TB
 ## 8. 局限与未来工作 Limitations & Future Work
 
 **局限（诚实陈述）**：
-- 语料为 2–4 s 中文短片段、小样本（26 clean + 自制重叠），结论不应外推到长音频 / 多语种。
-- MossFormer2 在该数据上普遍失效，exp2 的分离相关结论是在"分离基本不可用"前提下得出的退化观察。
+- 语料以 2–4 s 中文短片段为主、小样本（26 clean + 自制重叠 + exp6 长音频 5 样本），结论不应外推到更长音频 / 多语种。
+- MossFormer2 在该数据上普遍失效，exp2 的分离相关结论是在"分离基本不可用"前提下得出的退化观察；exp6 证实即便拉长到 ~12 s，separation 在多数条件仍失败（仅 clean/heavy 回本），但处理顺序差异随之显现。
 - real 录音抽查无逐字 ground truth，为定性 spot-check。
 
 **Future work**：
-- exp6 长音频 length ablation（验证短片段失效边界）+ context padding 缓解短片段分离。
+- ~~exp6 长音频 length ablation~~ → **已完成（见 6.7）**，定位了边界（长 heavy 分离回本、长+轻重叠下降噪应前置）；仍可做更长音频 + context padding 缓解短片段分离。
 - E5a：用带标签情感语料（ESD / CASIA / RAVDESS）画"emotion × CER"退化曲线，与 noise 退化曲线对仗。
 - emotion + LLM 收口：把 `[emotion]` 标签与 ASR 文本一起喂 LLM 输出结构化记录。
 - **Scope-out（明确不做）**：beamforming、echo cancellation、移动端部署、大规模模型训练，留作工程外延说明。
