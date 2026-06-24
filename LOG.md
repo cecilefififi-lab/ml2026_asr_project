@@ -648,5 +648,89 @@ stationary=True),即谱减法变体。
 ### 待补（不阻塞）
 
 - demo 截图 → `results/demo_screenshot.png`（§10 已留图位 + 启动命令）。
-- 实验 6 长音频 length ablation（占位，验证处理顺序结论的边界条件）。
+- ~~实验 6 长音频 length ablation（占位）~~ → **已完成（见 2026-06-25）**。
 - mermaid → PNG（仅导出 PDF / 视频 slides 时需要）。
+
+## 2026-06-25（实验 6：长音频 length ablation）
+
+回应 PLAN §八的核心边界问题：实验 2「处理顺序无稳定差异、分离普遍无用」是普遍规律，还是 2-4s 短片段分离全盘失效（spk CER 84-88%）的**退化伪影**？把同一说话人多条片段拼成 ~12s 长音频再混合，跑实验 2 同口径链路，定位边界。
+
+### 假设（实验前）
+
+1. 时长拉长后 MossFormer2 分离回本，per-speaker CER 下降。
+2. 长音频给处理顺序「发挥空间」，L4/L5 出现实验 2 没有的稳定差异。
+
+### 数据与设置
+
+- **数据出处确认（学长 `xutong_paper` 表 4.12）**：con/pro 源自一段 62.4s **双人**辩论质询片段（主题熬夜），论文明确「人工切分出单人语音片段」→ con_* 全为反方一人、pro_* 全为正方一人。拼接同一角色多条 = 连贯真实单说话人，**不构成假说话人**，阻塞解除。
+- **造长音频**（`make_exp6.py`，复用 `make_overlap.mix_pair`）：每条样本固定种子（SEED+i）抽 con/pro 片段拼到 ~11-12s/说话人，再按 light(0.3)/heavy(0.8) 错位混合（no 对分离无意义砍掉）。5 条样本 × 2 档 = 10 个干净长混合（总长 13-24s），refA/refB = 各角色拼接片段的 ref 拼接，**双说话人严格 GT**。
+- **噪声**：clean + babble_0dB + white_0dB（干净 / 最毒人声 / 宽带），`add_noise.py` 复用，SNR 误差 0.000。
+- **链路**（`run_exp6.py`，复用 denoise/separate_mossformer_ms/run_asr，不动实验 2 脚本）：砍掉 L2（纯降噪不涉顺序），跑 **L1 直接 / L3 分离 / L4 降噪→分离 / L5 分离→降噪**；降噪 specsub，分离 MossFormer2 8k，**ASR Whisper large-v3 + FunASR paraformer-zh 双引擎**（异构对照，验证顺序效应非单模型特性；FunASR `--skip-prep` 复用中间产物）。
+- 规模：5 样本 × 2 档 × 3 噪声 × 4 链路 × 2 引擎 = **420 条转写**。评测 `eval_exp6.py`（GT 取自 manifest 拼接 ref，其余同 `eval_pipelines`）。
+
+> 注：本段为加 FunASR + white_0dB 后重跑的最终规范数据，中间产物重生成 + GPU 非确定性使个别格 content CER 较首跑 ±数 pt 浮动（如 clean/heavy/L5 41.6→47.7），定性结论不变。下文数字以 `results/exp6_summary.csv` 为准。
+
+### 结果
+
+**Whisper content CER %（short=实验 2 短片段 → long=本实验长音频）：**
+
+| cond | level | L1 | L3 | L4 | L5 |
+|---|---|---|---|---|---|
+| clean | light | 11.3 → **17.9** | 57.6 → 82.9 | 61.3 → 73.7 | 48.8 → 86.9 |
+| clean | heavy | 50.0 → 52.1 | 46.9 → 49.1 | 58.9 → 51.3 | 57.4 → **47.7** |
+| babble_0dB | light | 58.3 → **53.6** | 100.6 → 93.7 | 76.5 → **64.0** | 80.5 → 90.6 |
+| babble_0dB | heavy | 90.7 → 86.6 | 70.3 → 89.1 | 86.3 → 92.9 | 77.3 → 89.2 |
+| white_0dB | light | 32.5 → **29.9** | 64.2 → 48.1 | 68.7 → **47.2** | 64.4 → 51.8 |
+| white_0dB | heavy | 60.1 → 59.5 | 63.0 → 65.7 | 71.8 → 75.4 | 66.4 → 63.0 |
+
+**顺序效应 L4(降噪→分离) vs L5(分离→降噪) 双引擎对照（content CER %，胜者=更小）：**
+
+| cond | level | whisper L4/L5 | 胜 | funasr L4/L5 | 胜 |
+|---|---|---|---|---|---|
+| clean | light | 73.7 / 86.9 | **L4** −13 | 87.6 / 91.5 | **L4** −4 |
+| clean | heavy | 51.3 / 47.7 | L5 +4 | 56.1 / 54.6 | L5 +2 |
+| babble_0dB | light | 64.0 / 90.6 | **L4** −27 | 51.4 / 99.8 | **L4** −48 |
+| babble_0dB | heavy | 92.9 / 89.2 | L5 +4 | 73.9 / 82.3 | **L4** −8 |
+| white_0dB | light | 47.2 / 51.8 | **L4** −5 | 44.3 / 60.0 | **L4** −16 |
+| white_0dB | heavy | 75.4 / 63.0 | L5 +12 | 67.6 / 55.5 | L5 +12 |
+
+**per-speaker CER %（Whisper，分离质量）：** clean/heavy 50.7/52.9/51.8 是唯一降到 ~50% 的格，其余多在 75-94%（L3/L4/L5）。
+
+对比图：`results/exp6_length.png`（6 格 short vs long）；双引擎透视表 `results/exp6_pivot.md`；明细 `exp6_summary.csv` / `exp6_asr.csv` / `data/exp6/manifest.csv`。
+
+### 发现
+
+1. **L1 直接 ASR 仍是 light 重叠最优**：clean/light L1=17.9% 碾压任何分离链路（74-87%）。复现实验 2「轻重叠分离纯属画蛇添足」。
+2. **分离在长音频上依旧大面积失败**：per-speaker CER 多在 75-94% → 「短片段难分」**不是唯一主因**，MossFormer2 对中文叠加语音的根本困难不随时长缓解。假设 1 **仅在 clean/heavy 成立**。
+3. **【核心加固】顺序效应 light→先降噪(L4)，双引擎 6/6 一致**：**全部 6 个 light 格（clean/babble/white × whisper/funasr）都是 L4 占优**，babble 下最猛（whisper −27 / funasr **−48**）。FunASR 独立证实 → 顺序效应**不是 Whisper 特性**，是降噪前置真能帮分离器。heavy 重叠则 L5 多数微弱占优（5/6，funasr babble/heavy 例外），margin 小（~1.5-12）。**部分复活实验 2 当初被否的假设 2**。
+4. **【新 nuance】分离回本与否取决于引擎的噪声弱点**：Whisper 仅 clean/heavy 勉强回本（L5 47.7<L1 52.1）；FunASR clean/heavy **不**回本（L1 49.0 更优），但 **white_0dB 大幅回本**（light L1 76.9→分离 44.3；heavy 88.7→55.5）。因为 FunASR 怕 white（实验 1 已证 white_0dB CER 68.4%），直接 ASR 在 white 混合上极差，分离顺带去噪救场。**完美呼应实验 1「两引擎弱点相反」**——分离的价值随引擎在该噪声上的脆弱度而变。
+5. **clean/heavy 仍是 Whisper 分离的甜区**（spk CER 降到 ~50%，实验 2 短为 63.7%），但该结论引擎依赖（FunASR 不复现）。
+6. **babble_0dB 长音频依旧灾难**（Whisper L1 light 53.6 / heavy 86.6），幻觉不因变长缓解。
+
+### 假设回顾
+
+- 假设 1（变长则分离回本）：**否，且引擎依赖**。Whisper 仅 clean/heavy；FunASR 仅 white（因其本身怕 white）。分离失败主要是模型对中文重叠语音的能力问题，非纯时长问题。
+- 假设 2（长音频暴露顺序差异）：**成立且跨引擎稳健**。light 重叠先降噪（L4）双引擎 6/6 一致占优 → 实验 2「无稳定差异」确为短片段分离全败的退化伪影。
+
+**对实验 2 结论 H3 的升级（正面对应 `literature_support.md` 标注的需收窄项 A）：**
+「处理顺序不重要」从普遍结论**收窄/部分推翻**为——*在分离全盘失效的短片段上无差异（退化情形）；给足时长后顺序确有差异，**轻重叠应先降噪（L4，双引擎一致）**，重重叠 L5 多数微弱占优*。退化观察升级为**边界条件定位**，且经异构引擎佐证。
+
+### 典型案例
+
+- **案例 A（长 heavy 分离回本）**：clean/heavy `s3`，L1 把两人重叠台词串成一句跑题长串；L5 spk1/spk2 把内容拆成两路（虽仍有错）。长 + heavy 是 Whisper 分离唯一明确胜过直接 ASR 的格子。
+- **案例 B（顺序效应机理）**：babble_0dB/light `s2`。**L5（先分离）**：带噪混合直接喂分离器 → spk1=spk2=「中文字幕志愿者 李宗盛」（两路全坍成字幕 hallucination，彻底失败）。**L4（先降噪）**：分离器拿到干净输入 → spk2 救回大段真实内容（spk1 仍幻觉「请不吝点赞订阅」）。这就是 light+噪声下 L4 大幅领先的机理：**降噪前置避免分离器被噪声诱导出双路幻觉**。同款幻觉文本呼应实验 4 / 实验 2 案例 B。
+
+### 踩坑记录
+
+- 数据来源一度卡在「con 是否单一说话人」→ 查学长 `xutong_paper`（venv 无 PDF 库，临时 `pip install pypdf` 提取，已留 venv 备引用）表 4.12 确认双人辩论切片，阻塞解除。
+- 加 FunASR/white_0dB 重跑时，`run_exp6.py` 的 ASR 对整棵 S/SD/DS 树递归 → 为避免重复行，先清 `data/exp6/{mix,L*}` + `exp6_asr.csv` 再全量重跑（Whisper 全 prep+ASR，FunASR `--skip-prep` 复用）。误用 `&` + `run_in_background` 叠加曾使进程脱离 harness 跟踪，改查 `exp6_asr.csv` 行数判断进度。
+- FunASR 210 条未触发实验 1 的 jieba 挂起（那次是目录边界），顺利跑完。
+- 沿用 `PYTHONIOENCODING=utf-8`（中文+幻觉文本在 Windows GBK 控制台会崩）。
+
+### caveat
+
+N=5 样本/格，定性结论；babble_0dB/heavy 与 white_0dB/heavy 部分链路接近地板，该处差异不可靠。最硬的证据是 **light 重叠的 L4>L5 顺序效应（双引擎 6/6）** 与 **FunASR×white 分离回本**（与实验 1 弱点画像自洽）。
+
+### 小结
+
+实验 6 把实验 2 的 H3 从「退化观察」升级为「边界条件定位」并经**双引擎佐证**：① 处理顺序确有差异——**轻重叠先降噪（L4），whisper+funasr 6/6 一致**；② 分离是否回本**取决于引擎的噪声弱点**（FunASR×white 回本，呼应实验 1）；③ 分离普遍失败非短片段独有。产物 `src/{make_exp6,run_exp6,eval_exp6,plot_exp6}.py` + `results/exp6_*`（420 条双引擎）+ `data/exp6/`。
