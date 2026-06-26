@@ -1,21 +1,21 @@
 # When Does Audio Preprocessing Help ASR?
 
-本项目研究噪声与重叠语音场景下，本地音频预处理对 ASR 鲁棒性的影响。我们以辩论赛“AI 书记员”场景为例，比较 faster-whisper 与 FunASR 等 ASR 后端在降噪、语音分离、VAD、LLM 后处理等不同路径下的表现，并用 CER、RTF 等指标观察准确率和效率之间的权衡。
+This project studies when local audio preprocessing improves ASR robustness under noisy and overlapped-speech conditions. Using a debate "AI secretary" scenario, it compares ASR backends such as faster-whisper and FunASR across denoising, speech separation, VAD, and LLM-based correction pipelines. The experiments measure both character error rate (CER) and real-time factor (RTF), so the accuracy-efficiency trade-off of each processing path can be observed.
 
-## 项目结构
+## Project Structure
 
-- `src/`：核心代码和实验脚本，包括噪声生成、加噪、ASR 调用、降噪、语音分离、评估、绘图和 demo 生成等流程。
-- `data/`：实验音频数据，主要包含 `clean/` 干净语音、`noise/` 噪声素材、`overlap/` 重叠语音样本，以及部分实验输入文件。
-- `refs/`：参考转写文本、热词表和草稿转写，用于 CER 评估和 ASR 纠错对照。
-- `results/`：实验结果与图表输出，包含 `.csv` 指标表、`.md` 汇总说明，以及 `.png` 图表，例如降噪曲线、pipeline 对比、VAD 幻觉对比、长度消融和 trade-off 图。
-- `demo/`：Streamlit 展示页面，入口为 `demo/Home.py`，各实验展示页位于 `demo/pages/`，示例说明在 `demo/cases.md`。
-- `luyin/`：真实录音样本和录音要求，用于真实场景 spot check。
-- `test/`：少量 sanity-check 音频样本。
-- `REPORT.md`、`REPORT_en.md`、`REPORT_en.pdf`：中文/英文报告与英文 PDF 版本。
-- `LOG.md`：实验过程记录。
-- `requirements.txt`：Python 依赖列表。
+- `src/`: Core code and experiment scripts, including noise generation, noise mixing, ASR inference, denoising, speech separation, evaluation, plotting, and demo generation.
+- `data/`: Experimental audio data, including clean speech in `clean/`, noise materials in `noise/`, overlapped-speech samples in `overlap/`, and selected experiment input files.
+- `refs/`: Reference transcripts, hotwords, and draft transcripts used for CER evaluation and ASR correction comparisons.
+- `results/`: Experiment outputs and figures, including `.csv` metric tables, `.md` summaries, and `.png` charts such as denoising curves, pipeline comparisons, VAD hallucination comparisons, length ablations, and trade-off plots.
+- `demo/`: Streamlit demo pages. The entry point is `demo/Home.py`, experiment pages are in `demo/pages/`, and example case notes are in `demo/cases.md`.
+- `luyin/`: Real recording samples and recording instructions for real-world spot checks.
+- `test/`: A small set of sanity-check audio samples.
+- `REPORT.md`, `REPORT_en.md`, `REPORT_en.pdf`: Chinese and English reports, plus the English PDF version.
+- `LOG.md`: Experiment log and process notes.
+- `requirements.txt`: Python dependency list.
 
-## 环境
+## Environment
 
 ```bash
 python -m venv .venv
@@ -23,16 +23,16 @@ python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt
 ```
 
-## 最小流程
+## Minimal Workflow
 
 ```bash
-python src/make_noises.py                                   # 生成 white/babble 噪声
-python src/add_noise.py                                     # clean x 噪声 x SNR{15,5,0}
+python src/make_noises.py                                   # Generate white/babble noise
+python src/add_noise.py                                     # clean x noise x SNR{15,5,0}
 python src/run_asr.py --engine whisper --input data/clean --tag clean
 python src/run_asr.py --engine funasr  --input data/clean --tag clean
 python src/run_asr.py --engine whisper --input data/noisy/white_5dB --tag white_5dB
-python src/evaluate.py                                      # CER/RTF 汇总表
-python src/separate.py data/overlap/MidOverlap.wav          # SepFormer 分离
+python src/evaluate.py                                      # CER/RTF summary tables
+python src/separate.py data/overlap/MidOverlap.wav          # SepFormer separation
 ```
 
-实验记录见 `LOG.md`，主要结果汇总见 `results/summary.md` 和 `results/summary.csv`。
+See `LOG.md` for experiment notes. Main result summaries are available in `results/summary.md` and `results/summary.csv`.
