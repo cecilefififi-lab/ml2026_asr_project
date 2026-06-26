@@ -19,3 +19,6 @@ demo/audio/
 .env
 .env.*
 PLAN.md
+# 过程/规划文档(本地保留,不上传 GitHub)
+video_script_outline.md
+project_notes/
